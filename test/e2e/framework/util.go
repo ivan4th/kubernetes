@@ -3510,7 +3510,7 @@ func WaitForDeploymentStatusValid(c clientset.Interface, d *extensions.Deploymen
 			}
 		}
 		totalCreated := deploymentutil.GetReplicaCountForReplicaSets(allRSs)
-		totalAvailable, err := deploymentutil.GetAvailablePodsForDeployment(c, deployment)
+		totalAvailable, err := deploymentutil.GetAvailablePodsForDeployment(c, deployment, time.Now())
 		if err != nil {
 			return false, err
 		}

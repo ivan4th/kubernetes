@@ -195,7 +195,7 @@ func DeletionHandlingMetaNamespaceKeyFunc(obj interface{}) (string, error) {
 }
 
 // NewInformer returns a cache.Store and a controller for populating the store
-// while also providing event notifications. You should only used the returned
+// while also providing event notifications. You should only use the returned
 // cache.Store for Get/List operations; Add/Modify/Deletes will cause the event
 // notifications to be faulty.
 //
@@ -260,8 +260,8 @@ func NewInformer(
 }
 
 // NewIndexerInformer returns a cache.Indexer and a controller for populating the index
-// while also providing event notifications. You should only used the returned
-// cache.Index for Get/List operations; Add/Modify/Deletes will cause the event
+// while also providing event notifications. You should only use the returned
+// cache.Indexer for Get/List operations; Add/Modify/Deletes will cause the event
 // notifications to be faulty.
 //
 // Parameters:

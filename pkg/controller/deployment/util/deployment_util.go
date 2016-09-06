@@ -598,40 +598,29 @@ func GetActualReplicaCountForReplicaSets(replicaSets []*extensions.ReplicaSet) i
 	return totalReplicaCount
 }
 
-// GetAvailablePodsForReplicaSets returns the number of available pods (listed from clientset) corresponding to the given replica sets.
-func GetAvailablePodsForReplicaSets(c clientset.Interface, deployment *extensions.Deployment, rss []*extensions.ReplicaSet, minReadySeconds int32) (int32, error) {
-	podList, err := listPods(deployment, c)
-	if err != nil {
-		return 0, err
-	}
-	return CountAvailablePodsForReplicaSets(podList, rss, minReadySeconds)
-}
-
 // CountAvailablePodsForReplicaSets returns the number of available pods corresponding to the given pod list and replica sets.
 // Note that the input pod list should be the pods targeted by the deployment of input replica sets.
-func CountAvailablePodsForReplicaSets(podList *api.PodList, rss []*extensions.ReplicaSet, minReadySeconds int32) (int32, error) {
-	rsPods, err := filterPodsMatchingReplicaSets(rss, podList, minReadySeconds)
+func CountAvailablePodsForReplicaSets(podList *api.PodList, rss []*extensions.ReplicaSet, minReadySeconds int32, now time.Time) (int32, error) {
+	rsPods, err := filterPodsMatchingReplicaSets(rss, podList, minReadySeconds, now)
 	if err != nil {
 		return 0, err
 	}
-	return countAvailablePods(rsPods, minReadySeconds), nil
+	return countAvailablePods(rsPods, minReadySeconds, now), nil
 }
 
 // GetAvailablePodsForDeployment returns the number of available pods (listed from clientset) corresponding to the given deployment.
-func GetAvailablePodsForDeployment(c clientset.Interface, deployment *extensions.Deployment) (int32, error) {
+func GetAvailablePodsForDeployment(c clientset.Interface, deployment *extensions.Deployment, now time.Time) (int32, error) {
 	podList, err := listPods(deployment, c)
 	if err != nil {
 		return 0, err
 	}
-	return countAvailablePods(podList.Items, deployment.Spec.MinReadySeconds), nil
+	return countAvailablePods(podList.Items, deployment.Spec.MinReadySeconds, now), nil
 }
 
-func countAvailablePods(pods []api.Pod, minReadySeconds int32) int32 {
+func countAvailablePods(pods []api.Pod, minReadySeconds int32, now time.Time) int32 {
 	availablePodCount := int32(0)
 	for _, pod := range pods {
-		// TODO: Make the time.Now() as argument to allow unit test this.
-		// FIXME: avoid using time.Now
-		if IsPodAvailable(&pod, minReadySeconds, time.Now()) {
+		if IsPodAvailable(&pod, minReadySeconds, now) {
 			glog.V(4).Infof("Pod %s/%s is available.", pod.Namespace, pod.Name)
 			availablePodCount++
 		}
@@ -663,7 +652,7 @@ func IsPodAvailable(pod *api.Pod, minReadySeconds int32, now time.Time) bool {
 }
 
 // filterPodsMatchingReplicaSets filters the given pod list and only return the ones targeted by the input replicasets
-func filterPodsMatchingReplicaSets(replicaSets []*extensions.ReplicaSet, podList *api.PodList, minReadySeconds int32) ([]api.Pod, error) {
+func filterPodsMatchingReplicaSets(replicaSets []*extensions.ReplicaSet, podList *api.PodList, minReadySeconds int32, now time.Time) ([]api.Pod, error) {
 	allRSPods := []api.Pod{}
 	for _, rs := range replicaSets {
 		matchingFunc, err := rsutil.MatchingPodsFunc(rs)
@@ -674,7 +663,7 @@ func filterPodsMatchingReplicaSets(replicaSets []*extensions.ReplicaSet, podList
 			continue
 		}
 		rsPods := podutil.Filter(podList, matchingFunc)
-		avaPodsCount := countAvailablePods(rsPods, minReadySeconds)
+		avaPodsCount := countAvailablePods(rsPods, minReadySeconds, now)
 		if avaPodsCount > rs.Spec.Replicas {
 			msg := fmt.Sprintf("Found %s/%s with %d available pods, more than its spec replicas %d", rs.Namespace, rs.Name, avaPodsCount, rs.Spec.Replicas)
 			glog.Errorf("ERROR: %s", msg)

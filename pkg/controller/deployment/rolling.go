@@ -86,10 +86,8 @@ func (dc *DeploymentController) reconcileOldReplicaSets(allRSs []*extensions.Rep
 		return false, nil
 	}
 
-	minReadySeconds := deployment.Spec.MinReadySeconds
 	allPodsCount := deploymentutil.GetReplicaCountForReplicaSets(allRSs)
-	// TODO: use dc.getAvailablePodsForReplicaSets instead
-	newRSAvailablePodCount, err := deploymentutil.GetAvailablePodsForReplicaSets(dc.client, deployment, []*extensions.ReplicaSet{newRS}, minReadySeconds)
+	newRSAvailablePodCount, err := dc.getAvailablePodsForReplicaSets(deployment, []*extensions.ReplicaSet{newRS})
 	if err != nil {
 		return false, fmt.Errorf("could not find available pods: %v", err)
 	}
@@ -135,7 +133,7 @@ func (dc *DeploymentController) reconcileOldReplicaSets(allRSs []*extensions.Rep
 
 	// Clean up unhealthy replicas first, otherwise unhealthy replicas will block deployment
 	// and cause timeout. See https://github.com/kubernetes/kubernetes/issues/16737
-	oldRSs, cleanupCount, err := dc.cleanupUnhealthyReplicas(oldRSs, deployment, deployment.Spec.MinReadySeconds, maxScaledDown)
+	oldRSs, cleanupCount, err := dc.cleanupUnhealthyReplicas(oldRSs, deployment, maxScaledDown)
 	if err != nil {
 		return false, nil
 	}
@@ -154,7 +152,7 @@ func (dc *DeploymentController) reconcileOldReplicaSets(allRSs []*extensions.Rep
 }
 
 // cleanupUnhealthyReplicas will scale down old replica sets with unhealthy replicas, so that all unhealthy replicas will be deleted.
-func (dc *DeploymentController) cleanupUnhealthyReplicas(oldRSs []*extensions.ReplicaSet, deployment *extensions.Deployment, minReadySeconds, maxCleanupCount int32) ([]*extensions.ReplicaSet, int32, error) {
+func (dc *DeploymentController) cleanupUnhealthyReplicas(oldRSs []*extensions.ReplicaSet, deployment *extensions.Deployment, maxCleanupCount int32) ([]*extensions.ReplicaSet, int32, error) {
 	sort.Sort(controller.ReplicaSetsByCreationTimestamp(oldRSs))
 	// Safely scale down all old replica sets with unhealthy replicas. Replica set will sort the pods in the order
 	// such that not-ready < ready, unscheduled < scheduled, and pending < running. This ensures that unhealthy replicas will
@@ -168,8 +166,7 @@ func (dc *DeploymentController) cleanupUnhealthyReplicas(oldRSs []*extensions.Re
 			// cannot scale down this replica set.
 			continue
 		}
-		// TODO: use dc.getAvailablePodsForReplicaSets instead
-		availablePodCount, err := deploymentutil.GetAvailablePodsForReplicaSets(dc.client, deployment, []*extensions.ReplicaSet{targetRS}, minReadySeconds)
+		availablePodCount, err := dc.getAvailablePodsForReplicaSets(deployment, []*extensions.ReplicaSet{targetRS})
 		if err != nil {
 			return nil, totalScaledDown, fmt.Errorf("could not find available pods: %v", err)
 		}
@@ -201,10 +198,8 @@ func (dc *DeploymentController) scaleDownOldReplicaSetsForRollingUpdate(allRSs [
 
 	// Check if we can scale down.
 	minAvailable := deployment.Spec.Replicas - maxUnavailable
-	minReadySeconds := deployment.Spec.MinReadySeconds
 	// Find the number of ready pods.
-	// TODO: use dc.getAvailablePodsForReplicaSets instead
-	availablePodCount, err := deploymentutil.GetAvailablePodsForReplicaSets(dc.client, deployment, allRSs, minReadySeconds)
+	availablePodCount, err := dc.getAvailablePodsForReplicaSets(deployment, allRSs)
 	if err != nil {
 		return 0, fmt.Errorf("could not find available pods: %v", err)
 	}

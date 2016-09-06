@@ -21,6 +21,7 @@ import (
 	"reflect"
 	"sort"
 	"strconv"
+	"time"
 
 	"github.com/golang/glog"
 	"k8s.io/kubernetes/pkg/api"
@@ -497,12 +498,13 @@ func (dc *DeploymentController) calculateStatus(allRSs []*extensions.ReplicaSet,
 	}, nil
 }
 
+// getAvailablePodsForReplicaSets returns the number of available pods corresponding to the given replica sets.
 func (dc *DeploymentController) getAvailablePodsForReplicaSets(deployment *extensions.Deployment, rss []*extensions.ReplicaSet) (int32, error) {
 	podList, err := dc.listPods(deployment)
 	if err != nil {
 		return 0, err
 	}
-	return deploymentutil.CountAvailablePodsForReplicaSets(podList, rss, deployment.Spec.MinReadySeconds)
+	return deploymentutil.CountAvailablePodsForReplicaSets(podList, rss, deployment.Spec.MinReadySeconds, time.Now())
 }
 
 func (dc *DeploymentController) updateDeploymentStatus(allRSs []*extensions.ReplicaSet, newRS *extensions.ReplicaSet, deployment *extensions.Deployment) error {

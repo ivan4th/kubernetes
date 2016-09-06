@@ -127,7 +127,7 @@ func TestCountAvailablePods(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		if count := countAvailablePods(test.pods, int32(test.minReadySeconds)); int(count) != test.expected {
+		if count := countAvailablePods(test.pods, int32(test.minReadySeconds), now); int(count) != test.expected {
 			t.Errorf("Pods = %#v, minReadySeconds = %d, expected %d, got %d", test.pods, test.minReadySeconds, test.expected, count)
 		}
 	}
