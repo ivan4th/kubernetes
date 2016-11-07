@@ -32,6 +32,10 @@ func (m *unsupportedPodContainerManager) Exists(_ *api.Pod) bool {
 	return true
 }
 
+func (m *unsupportedPodContainerManager) Destroy(name CgroupName) error {
+	return nil
+}
+
 func (m *unsupportedPodContainerManager) EnsureExists(_ *api.Pod) error {
 	return nil
 }
