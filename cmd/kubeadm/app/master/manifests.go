@@ -225,6 +225,9 @@ func getComponentBaseCommand(component string) (command []string) {
 		command = []string{"kube-" + component}
 	}
 	command = append(command, kubeadmapi.GlobalEnvParams.ComponentLoglevel)
+	if component != apiServer {
+		command = append(command, "--kube-api-content-type=application/json")
+	}
 	return
 }
 

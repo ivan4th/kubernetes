@@ -502,6 +502,7 @@ func DefaultBuildHandlerChain(apiHandler http.Handler, c *Config) (secure, insec
 		handler = api.WithRequestContext(handler, c.RequestContextMapper)
 		handler = genericfilters.WithTimeoutForNonLongRunningRequests(handler, c.LongRunningFunc)
 		handler = genericfilters.WithMaxInFlightLimit(handler, c.MaxRequestsInFlight, c.LongRunningFunc)
+		handler = genericfilters.WithDump(handler, "/tmp/apiserver-requests.txt")
 		return handler
 	}
 	audit := func(handler http.Handler) http.Handler {
